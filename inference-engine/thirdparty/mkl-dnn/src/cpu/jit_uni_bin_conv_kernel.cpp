@@ -339,12 +339,17 @@ void jit_uni_bin_conv_fwd_kernel<isa>::width_blk_step(int ur_w, int pad_l, int p
         kmovw(ktail_mask, reg_tmp_32);
     }
 
+#if !defined(_MSC_VER)
+    int kw_padding[ur_w];
+#else
+    int *kw_padding = (int *)_alloca(sizeof(int) * ur_w);
+#endif
+
     const auto &p = attr_.post_ops_;
     for (int r = 0; r < repeats; r++) {
         int tail_size = isa == sse42 ? nstl::min(jcp.oc_block / 2, oc_step - r * jcp.oc_block / 2) : oc_step;
         bool is_scalar_store = isa == sse42 ? tail_size < jcp.oc_block / 2 : tail_size < jcp.oc_block;
 
-        int kw_padding[ur_w];
         if (jcp.exclude_pad) {
             mov(reg_tmp_32, jcp.ic);
             imul(reg_tmp_32,  ptr[param1 + GET_OFF(kh_padding)]);
